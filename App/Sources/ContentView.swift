@@ -17,6 +17,18 @@ struct ContentView: View {
 
     private var dark: Bool { settings.colorScheme.map { $0 == .dark } ?? (systemScheme == .dark) }
 
+    private var wazeDebugText: String {
+        let status: String
+        if let result = Waze.lastStatus {
+            let via = result.viaPage ? " via page" : ""
+            status = "Waze: HTTP \(result.code), \(result.count) reports\(via): \(result.summary)"
+        } else {
+            status = "Waze: not asked yet"
+        }
+        let probe = DemoScript.wazeProbe.isEmpty ? "" : "\n" + DemoScript.wazeProbe
+        return status + "\n" + WazeWeb.shared.note + probe
+    }
+
     var body: some View {
         ZStack {
             VelaMapView(model: model, settings: settings, dark: dark)
@@ -52,8 +64,7 @@ struct ContentView: View {
             if DemoScript.step == "wazemap" || DemoScript.step == "wazeuk" || DemoScript.step == "wazesizes" {
                 // Screenshot run only: what Waze answered, since the build's computers can't be trusted to get through.
                 TimelineView(.periodic(from: .now, by: 2)) { _ in
-                    Text((Waze.lastStatus.map { "Waze: HTTP \($0.code), \($0.count) reports\($0.viaPage ? " via page" : ""): \($0.summary)" } ?? "Waze: not asked yet")
-                         + "\n" + WazeWeb.shared.note + (DemoScript.wazeProbe.isEmpty ? "" : "\n" + DemoScript.wazeProbe))
+                    Text(wazeDebugText)
                         .font(.caption.monospaced()).padding(6).background(Color.red).foregroundColor(.white)
                         .padding(.bottom, 120)
                 }
