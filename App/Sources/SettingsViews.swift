@@ -91,6 +91,7 @@ struct SettingsView: View {
                             value: settings.wazeOn ? "On" : "Off", icon: "exclamationmark.triangle.fill", color: 0x7C3AED) {
                         WazeSettingsView(settings: settings)
                     }
+                    menuRow("Receiver diagnostics", detail: "Experimental discovery", icon: "display", color: 0x0F766E) { ReceiverDiagnosticsView() }
                     menuRow("Map & display", detail: "Theme, units, parking button", icon: "circle.lefthalf.filled", color: 0x334155) { mapPage }
                     menuRow("My places", detail: "Home and work", icon: "house.fill", color: 0x16A34A) { placesPage }
                     menuRow("Privacy", detail: "Use Kite without Google", value: settings.noGoogle ? "On" : nil,

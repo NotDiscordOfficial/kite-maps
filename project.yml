@@ -31,6 +31,9 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: Kite shows where you are on the map, finds places near you and guides you turn by turn.
         NSLocationAlwaysAndWhenInUseUsageDescription: Kite keeps guiding you with the screen off during navigation.
+        NSLocalNetworkUsageDescription: Kite searches your local network for compatible displays when you use receiver diagnostics.
+        NSBonjourServices:
+          - "_airplay._tcp"
         NSMicrophoneUsageDescription: Kite listens when you tap the microphone to search by voice.
         NSSpeechRecognitionUsageDescription: Kite turns what you say into a search.
         UIBackgroundModes:
