@@ -60,19 +60,21 @@ final class ReceiverDiagnostics: ObservableObject {
         let conn = NWConnection(to: endpoint, using: .tcp)
         connection = conn
         conn.stateUpdateHandler = { [weak self, weak conn] state in
-            guard let self, let conn, self.generation == token else { return }
-            switch state {
-            case .ready:
-                conn.send(content: ReceiverProbe.request, completion: .contentProcessed { error in
-                    DispatchQueue.main.async {
-                        guard self.generation == token else { return }
-                        if let error { self.finish("Send failed: \(error.localizedDescription)", token: token) }
-                        else { self.receive(conn, token: token) }
-                    }
-                })
-            case .failed(let error): self.finish("Connection failed: \(error.localizedDescription)", token: token)
-            case .waiting(let error): self.result = "Waiting: \(error.localizedDescription)"
-            default: break
+            DispatchQueue.main.async {
+                guard let self, let conn, self.generation == token else { return }
+                switch state {
+                case .ready:
+                    conn.send(content: ReceiverProbe.request, completion: .contentProcessed { error in
+                        DispatchQueue.main.async {
+                            guard self.generation == token else { return }
+                            if let error { self.finish("Send failed: \(error.localizedDescription)", token: token) }
+                            else { self.receive(conn, token: token) }
+                        }
+                    })
+                case .failed(let error): self.finish("Connection failed: \(error.localizedDescription)", token: token)
+                case .waiting(let error): self.result = "Waiting: \(error.localizedDescription)"
+                default: break
+                }
             }
         }
         conn.start(queue: .main)

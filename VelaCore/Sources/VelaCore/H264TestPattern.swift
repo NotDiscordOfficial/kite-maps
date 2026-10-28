@@ -35,7 +35,7 @@ public enum H264TestPattern {
         let colors: [[CGFloat]] = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]]
         for (index, color) in colors.enumerated() {
             ctx.setFillColor(red: color[0], green: color[1], blue: color[2], alpha: 1)
-            ctx.fill(CGRect(x: index * width / 4, y: 0, width: (width + 3) / 4, height: height))
+            ctx.fill(CGRect(x: CGFloat(index * width / 4), y: 0, width: CGFloat((width + 3) / 4), height: CGFloat(height)))
         }
         CVPixelBufferUnlockBaseAddress(pixel, [])
         let output = Output()
