@@ -24,6 +24,10 @@ The local encoder test produces a single synthetic H.264 frame with VideoToolbox
 
 `ReceiverProbeTests` exercises incremental framing, binary payloads, status, malformed headers, duplicate lengths and size limits. These are parser tests, not hardware or full-protocol integration tests. The branch CI builds a separately labelled diagnostics IPA artifact; see its Actions run. It is ad-hoc signed and must be re-signed when sideloaded, without implying any CarPlay entitlement.
 
+## User device observation
+
+The user reported that the iPhone discovered a `CarCast-CCB5` service, received RTSP 455 with an empty body from the unauthenticated `/info` probe, and encoded one 331-byte test frame on-device. This validates discovery, the TCP reply and local encoding in that setup. RTSP 455 indicates the request was not accepted in the current state; it does not identify the required missing handshake or validate the separate aftermarket head unit. CatPlay's sender asks `/info` after initial SETUP, so request order is one plausible explanation, not a confirmed diagnosis. No receiver stream or input was tested.
+
 ## Outstanding work
 
 Acquire a consented capture from the exact portable head unit, including discovery TXT, session sequence, response payloads and media ports with secrets and personal data removed. Establish receiver-specific authentication and authorization, then implement and test SETUP/event/timing/feedback/TEARDOWN and encryption. Define video frame headers and codec configuration, sequence/timing and resolution; implement real-time H.264 encode and compare with a mock and receiver. Implement HID input, audio, lifecycle, reconnect and safe conflict handling. Test Wi-Fi switching and real hardware, and study wired transport independently. An encoder or an `/info` reply alone is not a working sender. No Apple-issued CarPlay entitlement is requested by this prototype; that alone does not establish that an entitlement-free complete sender is possible on this hardware.

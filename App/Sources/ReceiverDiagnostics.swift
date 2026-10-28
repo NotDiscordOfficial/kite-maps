@@ -90,7 +90,8 @@ final class ReceiverDiagnostics: ObservableObject {
                 if let data { self.bytes.append(data) }
                 do {
                     if let response = try ReceiverProbe.parse(self.bytes) {
-                        self.finish("RTSP \(response.status), \(response.body.count) body bytes. A reply does not establish CarPlay compatibility or a session.", token: token)
+                        let detail = response.status == 455 ? " The receiver rejected this request in its current state; this probe has not established a session." : " A reply does not establish CarPlay compatibility or a session."
+                        self.finish("RTSP \(response.status), \(response.body.count) body bytes." + detail, token: token)
                     } else if complete || error != nil {
                         self.finish("Connection closed before a complete RTSP reply.", token: token)
                     } else { self.receive(conn, token: token) }
