@@ -99,6 +99,17 @@ enum MapStyler {
                     l.lineColor = c(p.minor)
                 }
             } else if let s = layer as? MLNSymbolStyleLayer {
+                if id == "label_other" {
+                    // Perth Airport is both a suburb and an airport. Keep the airport's
+                    // labelled symbol and suppress the same-named suburb label.
+                    let noDuplicate = NSPredicate(format: "NOT (%K == %@ AND %K == %@)",
+                                                  "class", "suburb", "name", "Perth Airport")
+                    if let original = s.predicate {
+                        s.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [original, noDuplicate])
+                    } else {
+                        s.predicate = noDuplicate
+                    }
+                }
                 if id.hasPrefix("highway-shield") || id == "road_shield_us" {
                     // OpenMapTiles sometimes joins overlapping route references with a semicolon.
                     // The fixed-size shield cannot fit "94;1"; show the first reference instead.
