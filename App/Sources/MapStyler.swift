@@ -99,6 +99,13 @@ enum MapStyler {
                     l.lineColor = c(p.minor)
                 }
             } else if let s = layer as? MLNSymbolStyleLayer {
+                if id.hasPrefix("highway-shield") || id == "road_shield_us" {
+                    // OpenMapTiles sometimes joins overlapping route references with a semicolon.
+                    // The fixed-size shield cannot fit "94;1"; show the first reference instead.
+                    let ref: [Any] = ["to-string", ["get", "ref"]]
+                    let separator: [Any] = ["index-of", ";", ref]
+                    s.text = NSExpression(mglJSONObject: ["case", [">", separator, 0], ["slice", ref, 0, separator], ref])
+                }
                 if id.hasPrefix("highway-name") {
                     s.textColor = c(p.roadLabel); s.textHaloColor = c(p.roadHalo)
                     s.textHaloWidth = NSExpression(forConstantValue: 1.6)

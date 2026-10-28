@@ -67,7 +67,7 @@ struct WazeMapChips: View {
                 if let n = model.wazeLiveCount, settings.wazeOnMap || settings.wazeHeatmap {
                     HStack(spacing: 8) {
                         Circle().fill(Color(hex: 0x22C55E)).frame(width: 10, height: 10)
-                        Text("Live from Waze · \(n) report\(n == 1 ? "" : "s")").font(.system(size: 14, weight: .semibold))
+                        Text("Waze in view · \(n) report\(n == 1 ? "" : "s")").font(.system(size: 14, weight: .semibold))
                     }
                     .padding(.horizontal, 12).frame(height: 34)
                     .glass(Capsule())

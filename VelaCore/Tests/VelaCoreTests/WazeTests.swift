@@ -2,6 +2,15 @@ import XCTest
 @testable import VelaCore
 
 final class WazeTests: XCTestCase {
+    func testVisibleReportsDoNotCountPrefetchMargin() {
+        let a = WazeAlert(id: "inside", kind: .police, location: LatLng(-31.8, 116.0))
+        let b = WazeAlert(id: "outside", kind: .hazard, location: LatLng(-31.7, 116.0))
+        XCTAssertEqual(Waze.inViewport([a, b], south: -31.9, west: 115.9, north: -31.75, east: 116.1).map(\.id), ["inside"])
+        let east = WazeAlert(id: "east", kind: .police, location: LatLng(0, 179.9))
+        let west = WazeAlert(id: "west", kind: .police, location: LatLng(0, -179.9))
+        XCTAssertEqual(Waze.inViewport([east, west], south: -1, west: 179, north: 1, east: -179).count, 2)
+    }
+
     func testParse() {
         let json = #"{"alerts":[{"type":"POLICE","subtype":"POLICE_HIDING","uuid":"a1","location":{"x":-0.12,"y":51.5},"street":"A40","pubMillis":1700000000000,"nThumbsUp":3,"reliability":8,"magvar":90},{"type":"WEATHERHAZARD","subtype":"HAZARD_ON_ROAD_POT_HOLE","uuid":"a2","location":{"x":-0.1,"y":51.4}},{"type":"WEATHERHAZARD","subtype":"HAZARD_WEATHER_FOG","uuid":"a3","location":{"x":-0.1,"y":51.4}},{"type":"HAZARD","subtype":"HAZARD_ON_ROAD_CONSTRUCTION","uuid":"a4","location":{"x":-0.1,"y":51.4}},{"type":"CHIT_CHAT","uuid":"a5","location":{"x":0,"y":0}},{"type":"ROAD_CLOSED","uuid":"a6"}],"jams":[]}"#
         let list = Waze.parse(Data(json.utf8))!

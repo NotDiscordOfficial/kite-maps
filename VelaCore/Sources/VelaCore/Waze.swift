@@ -90,6 +90,15 @@ public enum Waze {
      * [WazeLive]). Settings shows a switch for each.
      */
     public static let shares = Set(WazeAlert.Kind.allCases)
+
+    /// Reports inside the displayed geographic bounds; west > east crosses the antimeridian.
+    public static func inViewport(_ reports: [WazeAlert], south: Double, west: Double, north: Double, east: Double) -> [WazeAlert] {
+        reports.filter { report in
+            let point = report.location
+            let longitudeMatches = west <= east ? (point.lng >= west && point.lng <= east) : (point.lng >= west || point.lng <= east)
+            return point.lat >= south && point.lat <= north && longitudeMatches
+        }
+    }
     /** Waze keeps the Americas, Israel and the rest of the world on separate servers. */
     public static func env(for p: LatLng) -> String {
         if p.lat > 29, p.lat < 33.6, p.lng > 34, p.lng < 36 { return "il" }

@@ -180,9 +180,10 @@ struct VelaMapView: UIViewRepresentable {
                 style.addLayer(hillLayer)
             }
 
-            // Google's live traffic tiles, the same keyless overlay Vela draws.
-            let trafficURL = "https://www.google.com/maps/vt/pb=!1m4!1m3!1i{z}!2i{x}!3i{y}!2m9!1e2!2straffic!3i999999" +
-                "!4m2!1sincidents!2s1!4m2!1sincidents_text!2s1!3m8!2sen!3sus!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1e0"
+            // Traffic only. Google's incident icons are rasterized into the tiles and look
+            // blurry and duplicated beside Kite's interactive Waze report badges.
+            let trafficURL = "https://www.google.com/maps/vt/pb=!1m4!1m3!1i{z}!2i{x}!3i{y}!2m3!1e2!2straffic!3i999999" +
+                "!3m8!2sen!3sus!5e1105!12m4!1e68!2m2!1sset!2sRoadmap!4e0!5m1!1e0"
             let traffic = MLNRasterTileSource(identifier: "vela-traffic", tileURLTemplates: [trafficURL],
                                               options: [.tileSize: 256, .maximumZoomLevel: 16])
             style.addSource(traffic)
@@ -612,10 +613,20 @@ struct VelaMapView: UIViewRepresentable {
                 self.wazeBox = box
                 self.wazeAt = Date()
                 WazeHistory.shared.record(combined)
-                self.model.wazeLiveCount = combined.filter { self.model.settings.shows($0) }.count
+                if let map { self.updateVisibleWazeCount(map) }
                 self.model.updateAreaRisk(live: combined)
                 if let map { self.render(map); self.loadWaze(map) }
             }
+        }
+
+        /// Count only reports in the visible map, not the larger prefetch box.
+        private func updateVisibleWazeCount(_ map: MLNMapView) {
+            guard wazeAt != Date.distantPast else { return }
+            let b = map.visibleCoordinateBounds
+            let visible = Waze.inViewport(wazeAlerts, south: b.sw.latitude, west: b.sw.longitude,
+                                          north: b.ne.latitude, east: b.ne.longitude)
+            let count = visible.filter { model.settings.shows($0) }.count
+            if model.wazeLiveCount != count { model.wazeLiveCount = count }
         }
 
         /** For the build's screenshots: made-up reports, so the badges and glow show without Waze. */
@@ -948,6 +959,7 @@ struct VelaMapView: UIViewRepresentable {
 
         nonisolated func mapView(_ mapView: MLNMapView, regionDidChangeAnimated animated: Bool) {
             MainActor.assumeIsolated {
+                updateVisibleWazeCount(mapView)
                 loadCameras(mapView)
                 loadSurveillance(mapView)
                 loadWaze(mapView)
