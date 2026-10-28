@@ -17,7 +17,7 @@ concurrency:
 jobs:
   core:
     name: Check search code
-    runs-on: macos-15
+    runs-on: macos-26-intel
     steps:
       - uses: actions/checkout@v4
       - name: Unit tests
@@ -63,12 +63,10 @@ jobs:
         run: swift run vela-probe "pizza" 40.7484 -73.9857
 
   ipa:
+    needs: core
     name: Build Kite.ipa
-    # Xcode 27.1 (the iOS 27.1 SDK) is what lets Kite fill the iPhone Duo's screens; built with an
-    # older Xcode it runs there small, with black bars.
-    runs-on: xcode-27
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+    # Intel runners avoid the current Apple Silicon runner capacity shortage.
+    runs-on: macos-26-intel
     steps:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
@@ -123,6 +121,11 @@ jobs:
           VERSION=$(sed -n 's/.*MARKETING_VERSION: "\(.*\)"/\1/p' project.yml | head -1)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           {
+            echo "## Development beta - $VERSION"
+            echo "This build is for testing and has not been verified on a device."
+            echo
+            echo "Shows live Waze driver reports on the map without an active route."
+            echo
             echo "## What's new in $VERSION"
             echo
             awk -v v="## $VERSION" '$0 ~ "^## " { if (on) exit; if (index($0, v) == 1) { on = 1; next } } on' CHANGELOG.md
@@ -135,8 +138,9 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.notes.outputs.version }}
-          name: Kite Maps ${{ steps.notes.outputs.version }}
+          tag_name: v${{ steps.notes.outputs.version }}-beta
+          name: Kite Maps ${{ steps.notes.outputs.version }} Beta
+          prerelease: true
           body_path: notes.md
           files: Kite.ipa
       - name: Update the AltStore source
@@ -147,7 +151,7 @@ jobs:
           codesign -d --entitlements :- "$APP" > ents.plist 2>/dev/null || : > ents.plist
           mkdir -p source
           python3 .github/altstore/make_source.py "$APP" Kite.ipa ents.plist \
-            v${{ steps.notes.outputs.version }} "${{ github.repository }}" source/apps.json
+            v${{ steps.notes.outputs.version }}-beta "${{ github.repository }}" source/apps.json
           cd source
           git init -q -b altstore
           git config user.name "github-actions"
@@ -157,12 +161,10 @@ jobs:
 
   duo:
     name: Screenshots (iPhone Duo)
-    runs-on: xcode-27
+    runs-on: macos-26-intel
     # Only a look at the foldable; never holds up the build.
     continue-on-error: true
     timeout-minutes: 60
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
@@ -218,7 +220,7 @@ jobs:
 
   screens:
     name: Screenshots (simulator)
-    runs-on: macos-15
+    runs-on: macos-26-intel
     steps:
       - uses: actions/checkout@v4
       - name: Install XcodeGen
