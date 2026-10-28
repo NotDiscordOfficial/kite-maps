@@ -109,6 +109,7 @@ struct ReceiverDiagnosticsView: View {
     @StateObject private var diagnostics = ReceiverDiagnostics()
     @State private var host = ""
     @State private var port = ""
+    @State private var encoderResult = ""
 
     var body: some View {
         Form {
@@ -130,6 +131,15 @@ struct ReceiverDiagnosticsView: View {
                 }.disabled(host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || UInt16(port) == nil || UInt16(port) == 0)
             }
             if !diagnostics.result.isEmpty { Section("Result") { Text(diagnostics.result) } }
+            Section("Local encoder test") {
+                Button("Encode a test pattern") {
+                    do {
+                        let frame = try H264TestPattern.encode()
+                        encoderResult = "Encoded one H.264 frame (\(frame.avcc.count) bytes). No video was sent."
+                    } catch { encoderResult = "Encoder test failed: \(error)" }
+                }
+                if !encoderResult.isEmpty { Text(encoderResult).font(.footnote) }
+            }
         }
         .kiteList()
         .navigationTitle("Receiver diagnostics")

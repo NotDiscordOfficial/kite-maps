@@ -19,6 +19,8 @@ Cafari's extension demonstrates a ReplayKit broadcast-upload approach in this bu
 
 Settings > Receiver diagnostics discovers `_airplay._tcp` services on the currently connected network and allows a user-selected read-only TCP `GET /info` probe, either via Bonjour or a manually supplied host and port. Many AirPlay services are not CarPlay devices. Some compatible receivers may reject an unauthenticated /info before SETUP; a failure is not proof of incompatibility. The probe times out, bounds reply sizes, closes connections, and never sends SETUP, changes Bluetooth, streams media or claims a session. It does not join Wi-Fi or assume a fixed address/port.
 
+The local encoder test produces a single synthetic H.264 frame with VideoToolbox, collecting AVCC bytes and SPS/PPS. It does not send video to a receiver. `H264TestPatternTests` checks the resulting parameter-set types and invalid frame sizes. Hardware and live-stream performance remain unverified.
+
 `ReceiverProbeTests` exercises incremental framing, binary payloads, status, malformed headers, duplicate lengths and size limits. These are parser tests, not hardware or full-protocol integration tests. The branch CI builds a separately labelled diagnostics IPA artifact; see its Actions run. It is ad-hoc signed and must be re-signed when sideloaded, without implying any CarPlay entitlement.
 
 ## Outstanding work
