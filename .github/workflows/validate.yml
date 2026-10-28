@@ -1,0 +1,25 @@
+name: Validate Kite
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test core
+        working-directory: VelaCore
+        run: swift test
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen generate
+      - name: Build for iPhone simulator
+        run: |
+          set -o pipefail
+          xcodebuild -project Kite.xcodeproj -scheme Kite -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build | tail -n 200

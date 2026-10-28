@@ -82,6 +82,8 @@ struct VelaMapView: UIViewRepresentable {
         private var railFetch: Task<Void, Never>?
         /** Live Waze reports for the box last asked about, and when. */
         private var wazeAlerts: [WazeAlert] = []
+        private var browseLiveAlerts: [WazeAlert] = []
+        private var browseLiveAt = Date.distantPast
         private var wazeBox: (s: Double, w: Double, n: Double, e: Double)?
         private var wazeAt = Date.distantPast
         private var wazeFetch: Task<Void, Never>?
@@ -561,15 +563,46 @@ struct VelaMapView: UIViewRepresentable {
             wazeFetch = Task { [weak self, weak map] in
                 let found = await Waze.alerts(south: box.s, west: box.w, north: box.n, east: box.e)
                 guard let self else { return }
+                // The web map supplies closures; the app feed supplies driver reports.
+                // Navigation already refreshes its own feed, so avoid competing sessions.
+                var drivers: [WazeAlert]?
+                if self.model.nav == nil {
+                    let centre = LatLng((box.s + box.n) / 2, (box.w + box.e) / 2)
+                    drivers = await WazeLive.shared.alerts(boxes: [box], near: centre)
+                }
                 self.wazeFetch = nil
-                guard let found else { self.wazeFailedAt = Date(); return }
-                self.wazeAlerts = found
+                // Refresh even when the map is stationary, and retry a failed request.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 121) { [weak self, weak map] in
+                    if let self, let map { self.loadWaze(map) }
+                }
+                guard self.model.settings.wazeOn else { return }
+                if let drivers {
+                    self.browseLiveAlerts = drivers
+                    self.browseLiveAt = Date()
+                } else if Date().timeIntervalSince(self.browseLiveAt) > 300 {
+                    self.browseLiveAlerts = []
+                }
+                guard found != nil || drivers != nil else {
+                    self.wazeFailedAt = Date()
+                    if Date().timeIntervalSince(self.wazeAt) > 300 {
+                        self.wazeAlerts = []
+                        self.wazeAt = Date.distantPast
+                        self.model.wazeLiveCount = nil
+                        self.model.updateAreaRisk(live: [])
+                        if let map { self.render(map) }
+                    }
+                    return
+                }
+                let closures = found ?? []
+                let ids = Set(closures.map(\.id))
+                let combined = closures + self.browseLiveAlerts.filter { !ids.contains($0.id) && $0.location.lat >= box.s && $0.location.lat <= box.n && $0.location.lng >= box.w && $0.location.lng <= box.e }
+                self.wazeAlerts = combined
                 self.wazeBox = box
                 self.wazeAt = Date()
-                WazeHistory.shared.record(found)
-                self.model.wazeLiveCount = found.filter { self.model.settings.shows($0) }.count
-                self.model.updateAreaRisk(live: found)
-                if let map { self.render(map) }
+                WazeHistory.shared.record(combined)
+                self.model.wazeLiveCount = combined.filter { self.model.settings.shows($0) }.count
+                self.model.updateAreaRisk(live: combined)
+                if let map { self.render(map); self.loadWaze(map) }
             }
         }
 

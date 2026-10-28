@@ -11,7 +11,7 @@ import Foundation
  * licenses/SABRE-Plus-LICENSE.txt). Only the fetch path: Kite never reports to Waze.
  *
  * Gentle on Waze: one account kept on the phone (at most 3 new ones a day), one session reused,
- * a handful of boxes per ask, and Kite only asks while navigating.
+ * a handful of boxes per ask, and Kite asks for the visible map or the route while navigating.
  */
 public actor WazeLive {
     public static let shared = WazeLive()
@@ -59,6 +59,21 @@ public actor WazeLive {
     /** Reports from this session, by Waze's id; Waze sends each once per session, then "RmAlert" when it clears. */
     private var cache: [String: WazeAlert] = [:]
 
+    // Actor methods can interleave at network awaits. Keep the protocol's session and
+    // sequence number exclusive across a complete map or navigation request.
+    private var requestBusy = false
+    private var requestWaiters: [CheckedContinuation<Void, Never>] = []
+
+    private func acquireRequest() async {
+        if !requestBusy { requestBusy = true; return }
+        await withCheckedContinuation { requestWaiters.append($0) }
+    }
+
+    private func releaseRequest() {
+        if requestWaiters.isEmpty { requestBusy = false }
+        else { requestWaiters.removeFirst().resume() }
+    }
+
     private let defaults = UserDefaults.standard
 
     init() {
@@ -72,7 +87,10 @@ public actor WazeLive {
      * Nil when Waze couldn't be asked.
      */
     public func alerts(boxes: [(s: Double, w: Double, n: Double, e: Double)], near: LatLng) async -> [WazeAlert]? {
-        guard !boxes.isEmpty, Date() >= backoffUntil else { return nil }
+        guard !boxes.isEmpty else { return nil }
+        await acquireRequest()
+        defer { releaseRequest() }
+        guard Date() >= backoffUntil else { return nil }
         do {
             try await refresh(boxes, near: near)
         } catch Failure.expired {
