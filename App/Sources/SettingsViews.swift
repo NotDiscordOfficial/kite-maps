@@ -65,6 +65,7 @@ struct LayersSheet: View {
 
 struct SettingsView: View {
     @ObservedObject var settings: AppSettings
+    @ObservedObject var model: AppModel
     /** A page of the dock rather than a sheet: no Done button. */
     var inTab = false
     /** Opens the search for choosing home or work (the dock's page has it). */
@@ -94,6 +95,7 @@ struct SettingsView: View {
                         WazeSettingsView(settings: settings)
                     }
                     menuRow("Receiver diagnostics", detail: "Experimental discovery", icon: "display", color: 0x0F766E) { ReceiverDiagnosticsView() }
+                    menuRow("Data diagnostics", detail: "Heat map, cameras and Waze", icon: "doc.text.magnifyingglass", color: 0x0F766E) { DataDiagnosticsView(model: model) }
                     menuRow("Map & display", detail: "Theme, units, parking button", icon: "circle.lefthalf.filled", color: 0x334155) { mapPage }
                     menuRow("My places", detail: "Home and work", icon: "house.fill", color: 0x16A34A) { placesPage }
                     menuRow("Privacy", detail: "Use Kite without Google", value: settings.noGoogle ? "On" : nil,

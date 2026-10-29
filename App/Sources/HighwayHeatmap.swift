@@ -82,7 +82,7 @@ final class HighwayHeatmap {
         }
     }
 
-    private static func colour(_ data: Data) -> UIImage? {
+    static func colour(_ data: Data) -> UIImage? {
         guard let image = UIImage(data: data)?.cgImage, image.width == 256, image.height == 256 else { return nil }
         let w = image.width, h = image.height
         var pixels = [UInt8](repeating: 0, count: w * h * 4)
