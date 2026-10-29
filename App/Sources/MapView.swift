@@ -58,6 +58,7 @@ struct VelaMapView: UIViewRepresentable {
         c.loadCameras(map)
         c.loadSurveillance(map)
         c.loadWaze(map)
+        c.loadHighwayHeat(map)
     }
 
     @MainActor
@@ -65,6 +66,7 @@ struct VelaMapView: UIViewRepresentable {
         let model: AppModel
         var dark = false
         private var styleReady = false
+        private let highwayHeatmap = HighwayHeatmap()
         private var movedToUser = false
         private var pinDroppedAt = Date.distantPast
         private var originalLabels: [String: (NSExpression?, NSExpression?, NSExpression?)] = [:]
@@ -426,6 +428,11 @@ struct VelaMapView: UIViewRepresentable {
         }
 
         // MARK: Render
+
+        func loadHighwayHeat(_ map: MLNMapView) {
+            guard styleReady else { return }
+            highwayHeatmap.update(map, enabled: model.settings.highwayHeatmap)
+        }
 
         func render(_ map: MLNMapView) {
             guard styleReady, let style = map.style else { return }
@@ -963,6 +970,7 @@ struct VelaMapView: UIViewRepresentable {
                 loadCameras(mapView)
                 loadSurveillance(mapView)
                 loadWaze(mapView)
+                loadHighwayHeat(mapView)
                 loadRail(mapView)
                 noteHeading(mapView)
             }

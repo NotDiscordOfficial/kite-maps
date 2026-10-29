@@ -26,6 +26,7 @@ struct LayersSheet: View {
                 tile("Speed cameras", badge: .speed, on: settings.speedCameras) { settings.speedCameras.toggle() }
                 tile("Plate cameras", badge: .plate, on: settings.plateCameras) { settings.plateCameras.toggle() }
                 tile("Surveillance", icon: "video.fill", on: settings.surveillanceCameras) { settings.surveillanceCameras.toggle() }
+                tile("HR heat (beta)", icon: "flame.fill", on: settings.highwayHeatmap) { settings.highwayHeatmap.toggle() }
                 tile("Road alerts", waze: Waze.shares.contains(.police) ? .police : .closure, on: settings.wazeOn && settings.wazeOnMap) {
                     if settings.waze && settings.wazeOnMap { settings.wazeOnMap = false } else { settings.waze = true; settings.wazeOnMap = true }
                 }
@@ -39,7 +40,7 @@ struct LayersSheet: View {
         }
         .padding(20)
         .background(Vela.sheet(scheme).ignoresSafeArea())
-        .presentationDetents([.height(560)])
+        .presentationDetents([.height(650), .large])
     }
 
     private func tile(_ title: String, icon: String = "", badge: RoadCamera.Kind? = nil, waze: WazeAlert.Kind? = nil,

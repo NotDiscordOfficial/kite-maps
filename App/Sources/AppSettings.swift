@@ -60,6 +60,7 @@ final class AppSettings: ObservableObject {
     @Published var wazeMaxAge: Int { didSet { d.set(wazeMaxAge, forKey: "wazeMaxAge") } }
     /** A glow where police get reported, from what Kite has seen on this phone. */
     @Published var wazeHeatmap: Bool { didSet { d.set(wazeHeatmap, forKey: "wazeHeatmap") } }
+    @Published var highwayHeatmap: Bool { didSet { d.set(highwayHeatmap, forKey: "highwayHeatmap") } }
     /** "Police risk: high" while driving, from the Waze police reports remembered on this phone. */
     @Published var policeRisk: Bool { didSet { d.set(policeRisk, forKey: "policeRisk") } }
     /** Warn about police planes and helicopters nearby (open ADS-B flight tracking, not Waze). */
@@ -104,6 +105,7 @@ final class AppSettings: ObservableObject {
         wazeOnMap = d.object(forKey: "wazeOnMap") as? Bool ?? true
         wazeVoice = d.object(forKey: "wazeVoice") as? Bool ?? true
         wazeHeatmap = d.bool(forKey: "wazeHeatmap")
+        highwayHeatmap = d.bool(forKey: "highwayHeatmap")
         wazeMaxAge = d.object(forKey: "wazeMaxAge") as? Int ?? 120
         policeRisk = d.object(forKey: "policeRisk") as? Bool ?? true
         policeAircraft = d.bool(forKey: "policeAircraft")
