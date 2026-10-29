@@ -24,6 +24,7 @@ final class DataDiagnostics: ObservableObject {
             var entries: [DiagnosticZip.Entry] = []
             var lines = ["Kite data diagnostics", "Created (UTC): \(ISO8601DateFormatter().string(from: Date()))",
                          "Kite: \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"))",
+                         "Running bundle ID: \(Bundle.main.bundleIdentifier ?? "unknown")",
                          "iOS: \(UIDevice.current.systemVersion)", "Test area: fixed Perth tile 10/841/607, not device GPS.",
                          "HR heat layer enabled: \(model.settings.highwayHeatmap), Waze enabled: \(model.settings.wazeOn), plate cameras enabled: \(model.settings.plateCameras)",
                          "Location authorized: \(model.location.authorized), reduced accuracy: \(model.location.reducedAccuracy)",
