@@ -105,6 +105,17 @@ enum DirectionsParser {
                 out.append(folded)
                 return
             }
+            // A step's own markup with its icon beside it: a slip road with no side in the markup
+            // takes the icon's ("dir-tt-ramp-left" for "Exit at junction 10").
+            if let node = a.first as? [Any], let s = str(at(node, 1)), s.contains("<step "), node.count > 2 {
+                var m = parseStep(s)
+                if m.sideUnknown, let icon = str(at(a, 2, 1)) {
+                    if icon.contains("-left") { m.type = .rampLeft; m.sideUnknown = false }
+                    else if icon.contains("-right") { m.type = .rampRight; m.sideUnknown = false }
+                }
+                out.append(m)
+                return
+            }
             for e in a { collectSteps(e, into: &out) }
         } else if let s = n as? String, s.contains("<step ") {
             out.append(parseStep(s))
@@ -194,6 +205,12 @@ enum DirectionsParser {
         var m = Maneuver(type: mapType(token, side: side, severity: severity),
                          instruction: text.isEmpty ? "Continue" : text,
                          location: LatLng(0, 0), alongMeters: 0, distanceMeters: meters, road: road, laneHint: lane)
+        // A slip road with no side ("Take the M3 slip road" is ON_RAMP alone): not a merge, whatever
+        // the side turns out to be. Until the line says which, the left (where most leave in Britain).
+        if ["ON_RAMP", "OFF_RAMP", "RAMP"].contains(token?.uppercased() ?? ""), side == nil {
+            m.type = .rampLeft
+            m.sideUnknown = true
+        }
         // Google says the exit only in words: keep the number too, for the roundabout picture.
         if m.type == .roundabout { m.exit = exitNumber(in: m.instruction) }
         return m
@@ -232,7 +249,7 @@ enum DirectionsParser {
         case "MERGE", "MERGE_LEFT", "MERGE_RIGHT": return .merge
         case "FORK", "FORK_LEFT", "FORK_RIGHT": return lr(.forkLeft, .forkRight, .straight)
         case "ON_RAMP", "OFF_RAMP", "RAMP", "RAMP_LEFT", "ON_RAMP_LEFT", "OFF_RAMP_LEFT",
-             "RAMP_RIGHT", "ON_RAMP_RIGHT", "OFF_RAMP_RIGHT": return lr(.rampLeft, .rampRight, .merge)
+             "RAMP_RIGHT", "ON_RAMP_RIGHT", "OFF_RAMP_RIGHT": return lr(.rampLeft, .rampRight, .rampLeft)
         case "KEEP", "KEEP_LEFT", "KEEP_RIGHT": return lr(.keepLeft, .keepRight, .straight)
         case let t where t.contains("ROUNDABOUT"): return .roundabout
         default: return (left || right) ? lr(.turnLeft, .turnRight, .unknown) : .unknown
@@ -258,6 +275,7 @@ enum DirectionsParser {
             let start = max(0, end - m.distanceMeters * scale)
             m.alongMeters = start
             m.location = Geo.point(along: line, meters: start, cumulative: cum)
+            if m.sideUnknown { m.type = rampSide(line, cumulative: cum, at: start); m.sideUnknown = false }
             out.insert(m, at: 0)
             end = start
         }
@@ -270,6 +288,25 @@ enum DirectionsParser {
         out.append(Maneuver(type: .arrive, instruction: steps.last?.type == .arrive ? steps.last!.instruction : "You have arrived",
                             location: line[line.count - 1], alongMeters: total, distanceMeters: 0, road: nil, laneHint: nil))
         return out
+    }
+
+    /**
+     * Which side a slip road leaves on, from the route line: the way the line bends from the road
+     * before to the slip road after, and where it hardly bends, the side traffic keeps to (a slip
+     * road off a British road is on the left).
+     */
+    static func rampSide(_ line: [LatLng], cumulative cum: [Double], at along: Double) -> ManeuverType {
+        let total = cum.last ?? 0
+        func heading(_ a: Double, _ b: Double) -> Double? {
+            let p = Geo.point(along: line, meters: max(0, a), cumulative: cum), q = Geo.point(along: line, meters: min(total, b), cumulative: cum)
+            return p.distance(to: q) > 3 ? Geo.bearing(p, q) : nil
+        }
+        let left = Geo.drivesOnLeft(Geo.point(along: line, meters: along, cumulative: cum))
+        guard let a = heading(along - 60, along), let b = heading(along + 30, along + 150) else { return left ? .rampLeft : .rampRight }
+        let turn = (b - a + 540).truncatingRemainder(dividingBy: 360) - 180
+        if turn <= -15 { return .rampLeft }
+        if turn >= 15 { return .rampRight }
+        return left ? .rampLeft : .rampRight
     }
 
     static func compass(_ bearing: Double) -> String {

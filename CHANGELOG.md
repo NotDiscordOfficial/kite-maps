@@ -3,6 +3,17 @@
 Every version of Kite Maps, newest first. The small number goes up for fixes and polish, and
 the middle number for big milestones.
 
+## 0.7.5
+
+- **Slip roads show a slip road arrow, not a merge:** Google names some slip roads without saying
+  which side they leave on ("Take the M3 slip road" on Leigh Road, "Exit at junction 10"), and
+  Kite showed those as a merge. They now get the slip road arrow, on the side the road really
+  goes (8 of 40 slip roads were wrong on 14 drives; none wrong after the fix, in two rounds of
+  24 drives across England, Wales and Scotland).
+- **More than one good lane at big roundabouts:** going right on a road with three lanes or more,
+  the middle lane is lit as well as the right one (M27 junction 3 from the M271). Where the map
+  has the painted lane arrows, or Google says which lanes to use, Kite follows those instead.
+
 ## 0.7.4
 
 - **Police, crashes and hazards from Waze drivers, free, with no key:** while you navigate, Kite

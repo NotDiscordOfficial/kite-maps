@@ -58,8 +58,9 @@ public enum Roundabouts {
                 changed = true
             }
             // How many lanes the road in has at the give-way line, for the lane advice.
-            if r.maneuvers[i].roundabout != nil, let n = entryLanes(ways, line: route.polyline, cumulative: cum, along: m.alongMeters) {
-                r.maneuvers[i].roundabout?.entryLanes = n
+            if r.maneuvers[i].roundabout != nil, let e = entryLanes(ways, line: route.polyline, cumulative: cum, along: m.alongMeters) {
+                r.maneuvers[i].roundabout?.entryLanes = e.count
+                r.maneuvers[i].roundabout?.entryArrows = e.arrows
                 changed = true
             }
         }
@@ -163,22 +164,27 @@ public enum Roundabouts {
      * OpenStreetMap way under the line 15 m back, its `lanes` (or the ones going this way on a
      * two-way road). Nil when the map doesn't say.
      */
-    static func entryLanes(_ ways: [Way], line: [LatLng], cumulative cum: [Double], along: Double) -> Int? {
+    static func entryLanes(_ ways: [Way], line: [LatLng], cumulative cum: [Double], along: Double) -> (count: Int, arrows: [String]?)? {
         guard along > 30 else { return nil }
         let p = Geo.point(along: line, meters: along - 15, cumulative: cum)
         let back = Geo.point(along: line, meters: along - 30, cumulative: cum)
         let roads = ways.filter { !$0.isRing && $0.tags["highway"] != nil }
         guard let w = roads.min(by: { distance(p, $0) < distance(p, $1) }), distance(p, w) < 10 else { return nil }
         func count(_ k: String) -> Int? { w.tags[k].flatMap { Int($0.trimmingCharacters(in: .whitespaces)) } }
-        let n: Int?
+        let n: Int?, turns: String?
         if onewayDirection(w.tags) != 0 {
             n = count("lanes")
+            turns = w.tags["turn:lanes"]
         } else {
             // Along the way's own order or against it.
             let forward = Geo.project(p, on: w.points).along > Geo.project(back, on: w.points).along
             n = count(forward ? "lanes:forward" : "lanes:backward") ?? count("lanes").map { max(1, $0 / 2) }
+            turns = w.tags[forward ? "turn:lanes:forward" : "turn:lanes:backward"]
         }
-        return n.flatMap { (1...6).contains($0) ? $0 : nil }
+        // The arrows painted on each lane, left to right, when mapped for every lane ("left|through|through;right").
+        let arrows = turns.map { $0.components(separatedBy: "|").map { $0.trimmingCharacters(in: .whitespaces) } }
+        guard let n, (1...6).contains(n) else { return nil }
+        return (n, arrows?.count == n && arrows!.contains { !$0.isEmpty && $0 != "none" } ? arrows : nil)
     }
 
     /** [exit] exits, the last one at [out] and the ones before it spaced evenly on the way round. */

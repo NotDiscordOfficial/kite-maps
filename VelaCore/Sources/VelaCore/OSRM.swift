@@ -140,7 +140,7 @@ public enum OSRM {
                     let dist = step["distance"] as? Double ?? 0
                     if let n = name ?? ref { roads[n, default: 0] += dist }
                     let loc = (m["location"] as? [Double]).map { LatLng($0[1], $0[0]) } ?? Geo.point(along: line, meters: along, cumulative: cum)
-                    let mt = maneuverType(type, modifier)
+                    let mt = maneuverType(type, modifier, leftTraffic: Geo.drivesOnLeft(loc))
                     let signs = Signs(destinations: step["destinations"] as? String, exits: step["exits"] as? String,
                                       from: maneuvers.last?.road)
                     var man = Maneuver(type: mt, instruction: instruction(type: type, modifier: modifier, road: name ?? ref,
@@ -349,14 +349,16 @@ public enum OSRM {
         return out.contains { $0.kmh != nil } ? out : []
     }
 
-    static func maneuverType(_ type: String, _ modifier: String?) -> ManeuverType {
+    static func maneuverType(_ type: String, _ modifier: String?, leftTraffic: Bool = false) -> ManeuverType {
         switch type {
         case "depart": return .depart
         case "arrive": return .arrive
         case "roundabout", "rotary", "roundabout turn", "exit roundabout", "exit rotary": return .roundabout
         case "merge": return .merge
         case "on ramp", "off ramp":
-            return (modifier ?? "").contains("left") ? .rampLeft : .rampRight
+            // Straight on (no side): the side traffic keeps to, where slip roads leave.
+            let m = modifier ?? ""
+            return m.contains("left") ? .rampLeft : m.contains("right") ? .rampRight : (leftTraffic ? .rampLeft : .rampRight)
         case "fork":
             return (modifier ?? "").contains("left") ? .forkLeft : .forkRight
         default: break

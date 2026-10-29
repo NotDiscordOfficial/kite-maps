@@ -340,8 +340,8 @@ enum LaneGuide {
             let words = hint.replacingOccurrences(of: "use the ", with: "", options: .caseInsensitive)
             return ([], words.prefix(1).uppercased() + words.dropFirst())
         }
-        // The Highway Code's lanes, as many as the road in has.
-        guard m.type == .roundabout, !m.leavesRoundabout, let lanes = m.roundabout?.ruleLanes(leftTraffic: leftTraffic) else { return nil }
+        // The road's painted arrows, Google's advice, or the Highway Code's lanes, as many as the road in has.
+        guard m.type == .roundabout, !m.leavesRoundabout, let lanes = m.roundabout?.ruleLanes(leftTraffic: leftTraffic, hint: m.laneHint) else { return nil }
         return named(lanes)
     }
 

@@ -73,6 +73,10 @@ if args.count > 1, args[1] == "roundabouts" {
     await overnightAudit()
     exit(0)
 }
+if args.count > 1, args[1] == "ramps" {
+    await rampAudit()
+    exit(0)
+}
 if args.count > 1, args[1] == "rdebug" {
     await roundaboutDebug()
     exit(0)

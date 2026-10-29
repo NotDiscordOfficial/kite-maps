@@ -2,6 +2,12 @@ import XCTest
 @testable import VelaCore
 
 final class ReceiverProbeTests: XCTestCase {
+    func testReadOnlyOptionsRequestAndPublicHeader() throws {
+        XCTAssertTrue(String(decoding: ReceiverProbe.optionsRequest, as: UTF8.self).hasPrefix("OPTIONS * RTSP/1.0\r\n"))
+        let reply = Data("RTSP/1.0 200 OK\r\nCSeq: 1\r\nPublic: OPTIONS, GET, SETUP\r\nContent-Length: 0\r\n\r\n".utf8)
+        let parsed = try XCTUnwrap(ReceiverProbe.parse(reply))
+        XCTAssertEqual(parsed.headers["public"], "OPTIONS, GET, SETUP")
+    }
     func testIncrementalBinaryBody() throws {
         let header = Data("RTSP/1.0 200 OK\r\nCSeq: 1\r\nContent-Length: 4\r\n\r\n".utf8)
         XCTAssertNil(try ReceiverProbe.parse(header + Data([0, 1])))

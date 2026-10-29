@@ -51,6 +51,8 @@ public struct Maneuver: Hashable, Sendable {
     public var leavesRoundabout = false
     /** Only the road's name changes here ("Continue on Millbrook Flyover"): kept for the road name, never shown or said. */
     public var silent = false
+    /** A slip road Google names without saying which side it leaves on ("Take the M3 slip road"): the side comes from the route line once it's placed. */
+    var sideUnknown = false
 
     public init(type: ManeuverType, instruction: String, location: LatLng, alongMeters: Double, distanceMeters: Double,
                 road: String? = nil, laneHint: String? = nil, lanes: [Lane] = [], exit: Int? = nil,
@@ -87,6 +89,8 @@ public struct RoundaboutShape: Hashable, Sendable {
     public var mini = false
     /** Lanes on the road in at the give-way line, when OpenStreetMap says. */
     public var entryLanes: Int?
+    /** The arrows painted on those lanes, left to right ("left", "through;right"…), when OpenStreetMap maps them. */
+    public var entryArrows: [String]?
 
     public init(exits: [Double], taken: Int, entriesOnly: [Double] = [], clockwise: Bool, complete: Bool) {
         self.exits = exits
@@ -114,28 +118,83 @@ public struct RoundaboutShape: Hashable, Sendable {
     }
 
     /**
-     * The lanes to draw when none have arrows mapped, left to right, by the Highway Code: as many
-     * as the road in has (two when the map doesn't say), the kerb-side one for the first exits, all
-     * but the far one for straight on, the far one for going right round. Nil for a one-lane road
-     * in or a mini-roundabout, where there's no lane to pick. A 3-lane approach was drawn as two
-     * (Rownhams, M27 junction 3), and a one-lane one got "Left lane" (Bury Road, Marchwood).
+     * The lanes to draw when the router has none, left to right: the road's painted arrows when
+     * OpenStreetMap maps them, or else by the Highway Code, as many as the road in has (two when
+     * the map doesn't say). The kerb-side lane for the first exits, all but the far one for
+     * straight on, and for going right round, the far one, or on three lanes or more the far half
+     * (the middle lane of three takes the right too: Rownhams, M27 junction 3, 2026-10-29). Only
+     * the far lane for going all the way round. Nil for a one-lane road in or a mini-roundabout,
+     * where there's no lane to pick.
      */
-    public func ruleLanes(leftTraffic: Bool) -> [Lane]? {
+    public func ruleLanes(leftTraffic: Bool, hint: String? = nil) -> [Lane]? {
         if mini { return nil }
-        let n = entryLanes ?? 2
-        guard n > 1, exits.indices.contains(taken) else { return nil }
+        var n = entryLanes ?? 2
+        guard exits.indices.contains(taken) else { return nil }
         let t = turn(taken)
+        let near = leftTraffic ? "left" : "right", far = leftTraffic ? "right" : "left"
+        // Google's own advice ("Use the left 3 lanes"), the few times it gives one, beats any rule:
+        // on the A339 into Basingstoke's M3 junction 6 all four lanes are painted straight on, and
+        // the M3 (3rd exit) is from the left three.
+        if let hint, let picked = Self.hintLanes(hint, count: &n) {
+            let lanes = (0..<n).map { k -> Lane in
+                let a = entryArrows?.count == n ? entryArrows![k].split(separator: ";").map { $0 == "through" ? "straight" : String($0) } : []
+                let ind = !a.isEmpty && !a.contains("none") ? a : k == 0 ? [near, "straight"] : k == n - 1 ? [far, "straight"] : ["straight"]
+                return Lane(indications: ind, valid: picked.contains(k))
+            }
+            return lanes
+        }
+        guard n > 1 else { return nil }
+        if let arrows = entryArrows, arrows.count == n {
+            // Painted arrows: the lanes whose arrow points the exit's way.
+            let lanes = arrows.map { a -> Lane in
+                let ind = a.split(separator: ";").map { String($0) }.filter { !$0.isEmpty && $0 != "none" }
+                let ok = (ind.isEmpty ? ["through"] : ind).contains { d in
+                    if d.hasSuffix(near) { return t <= 150 }
+                    if d == "through" { return t >= 120 && t <= 240 }
+                    if d.hasSuffix(far) { return t >= 210 }
+                    if d == "reverse" { return t >= 300 }
+                    return false
+                }
+                return Lane(indications: ind.isEmpty ? ["straight"] : ind.map { $0 == "through" ? "straight" : $0 == "reverse" ? "uturn" : $0.replacingOccurrences(of: "_", with: " ") }, valid: ok)
+            }
+            if lanes.contains(where: \.valid) { return lanes }
+        }
         // Counted from the kerb: 0 is the lane nearest it.
         let good: ClosedRange<Int>
-        if t > 200 { good = (n - 1)...(n - 1) }
+        if t > 300 || (t > 200 && n < 3) { good = (n - 1)...(n - 1) }
+        else if t > 200 { good = (n / 2)...(n - 1) }
         else if t > 135 { good = 0...max(0, n - 2) }
         else { good = 0...0 }
-        let near = leftTraffic ? "left" : "right", far = leftTraffic ? "right" : "left"
         let fromKerb = (0..<n).map { k -> Lane in
-            let ind = k == 0 ? (n == 2 ? [near, "straight"] : [near]) : k == n - 1 ? [far] : ["straight"]
+            let ind = k == 0 ? (n == 2 ? [near, "straight"] : [near]) : k == n - 1 ? [far] : ["straight", far]
             return Lane(indications: ind, valid: good.contains(k))
         }
         return leftTraffic ? fromKerb : fromKerb.reversed()
+    }
+}
+
+extension RoundaboutShape {
+    /**
+     * Which lanes, left to right, Google's lane advice means, out of [count] (raised when the advice
+     * needs more, as "the left 3 lanes" on a road the map gives two). Nil for "any lane" or words it
+     * doesn't know.
+     */
+    static func hintLanes(_ hint: String, count n: inout Int) -> ClosedRange<Int>? {
+        let h = hint.lowercased()
+        func number(_ pattern: String) -> Int? {
+            guard let r = h.range(of: pattern, options: .regularExpression) else { return nil }
+            return Int(h[r].filter(\.isNumber))
+        }
+        if h.contains("any lane") { return nil }
+        if let k = number(#"left \d lanes"#) { n = max(n, k + 1); return 0...(k - 1) }
+        if let k = number(#"right \d lanes"#) { n = max(n, k + 1); return (n - k)...(n - 1) }
+        if let k = number(#"lane \d(st|nd|rd|th) from the left"#) { n = max(n, k + 1); return (k - 1)...(k - 1) }
+        if let k = number(#"lane \d(st|nd|rd|th) from the right"#) { n = max(n, k + 1); return (n - k)...(n - k) }
+        if h.contains("left lane") { n = max(n, 2); return 0...0 }
+        if h.contains("right lane") { n = max(n, 2); return (n - 1)...(n - 1) }
+        if h.contains("middle lane") { guard n == 3 else { return nil }; return 1...1 }
+        if h.contains("middle 2 lanes") { guard n == 4 else { return nil }; return 1...2 }
+        return nil
     }
 }
 

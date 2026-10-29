@@ -44,6 +44,39 @@ final class RoutingTests: XCTestCase {
                        "Slight left onto the ramp to So'ton")
     }
 
+    /**
+     * Google's "Take the M3 slip road" (Leigh Road, Eastleigh, 2026-10-29) is ON_RAMP with no side,
+     * and showed a merge arrow. It's a slip road: the side comes from Google's icon, else the line.
+     */
+    func testSlipRoadWithNoSideIsNotAMerge() {
+        let s = DirectionsParser.parseStep("<step maneuver='ON_RAMP' meters='300'>Use the left lane to take the <signlist><sign>M3</sign></signlist> slip road</step>")
+        XCTAssertNotEqual(s.type, .merge)
+        // North up Leigh Road, then the slip road bends away: left, right or straight on.
+        let o = LatLng(50.97, -1.356)
+        func line(_ bend: Double) -> [LatLng] {
+            let k = cos(o.lat * .pi / 180) * 111_320
+            let a = LatLng(o.lat + 500 / 110_540, o.lng)
+            return [o, a, LatLng(a.lat + 300 * cos(bend * .pi / 180) / 110_540, a.lng + 300 * sin(bend * .pi / 180) / k)]
+        }
+        XCTAssertEqual(DirectionsParser.place([s], on: line(-35))[1].type, .rampLeft)
+        XCTAssertEqual(DirectionsParser.place([s], on: line(35))[1].type, .rampRight)
+        // Hardly bending: the side British traffic keeps to.
+        XCTAssertEqual(DirectionsParser.place([s], on: line(4))[1].type, .rampLeft)
+        // Google's icon beside the step says the side ("Exit at junction 10" with dir-tt-ramp-left).
+        func entry(_ icon: String) -> [Any] {
+            [[0, "<step maneuver='OFF_RAMP' meters='300'>Exit at junction 10</step>", [300, "0.2 mi", 1]] as [Any], NSNull(),
+             ["//maps.gstatic.com/tactile/directions/text_mode/maneuvers-2x.png", icon]]
+        }
+        var steps: [Maneuver] = []
+        DirectionsParser.collectSteps([entry("dir-tt dir-tt-ramp-right")], into: &steps)
+        XCTAssertEqual(steps.map(\.type), [.rampRight])
+        XCTAssertEqual(DirectionsParser.place(steps, on: line(-35))[1].type, .rampRight)
+        // The open router's slip road straight on is on the traffic's side too, not always the right.
+        XCTAssertEqual(OSRM.maneuverType("off ramp", "straight", leftTraffic: true), .rampLeft)
+        XCTAssertEqual(OSRM.maneuverType("on ramp", nil, leftTraffic: false), .rampRight)
+        XCTAssertEqual(OSRM.maneuverType("on ramp", "slight right", leftTraffic: true), .rampRight)
+    }
+
     func testGeometryDeltas() {
         let g = DirectionsParser.decodeGeometry([[385_000_000, 10_000], [-1_217_000_000, -20_000]])
         XCTAssertEqual(g?.count, 2)

@@ -3,6 +3,8 @@ import Foundation
 /// A deliberately read-only RTSP /info probe. It does not authenticate or create a CarPlay session.
 public enum ReceiverProbe {
     public static let request = Data("GET /info RTSP/1.0\r\nCSeq: 1\r\nUser-Agent: Kite-Receiver-Diagnostics/1\r\n\r\n".utf8)
+    /// OPTIONS asks the endpoint which methods it supports. It does not begin a session.
+    public static let optionsRequest = Data("OPTIONS * RTSP/1.0\r\nCSeq: 1\r\nUser-Agent: Kite-Receiver-Diagnostics/1\r\n\r\n".utf8)
     public static let maximumResponseBytes = 128 * 1024
 
     public struct Response: Equatable {
