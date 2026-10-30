@@ -1,0 +1,51 @@
+{
+  "name": "Kite Maps",
+  "identifier": "app.vela.ios.source",
+  "subtitle": "A free, open-source maps app for iPhone.",
+  "description": "The official source for Kite Maps, an unofficial iPhone port of Vela Maps.",
+  "iconURL": "https://raw.githubusercontent.com/NotDiscordOfficial/kite-maps/main/docs/icon.png",
+  "website": "https://github.com/NotDiscordOfficial/kite-maps",
+  "tintColor": "#14857A",
+  "apps": [
+    {
+      "name": "Kite Maps",
+      "bundleIdentifier": "app.vela.ios",
+      "developerName": "MatteoFX",
+      "subtitle": "Maps, search and turn-by-turn navigation.",
+      "localizedDescription": "Kite Maps is a free, open-source maps app: search places, get directions, voice navigation with speed cameras and lane guidance, transit, Street View and more. It's an unofficial iPhone port of Vela Maps by PimpinPumpkin.",
+      "iconURL": "https://raw.githubusercontent.com/NotDiscordOfficial/kite-maps/main/docs/icon.png",
+      "tintColor": "#14857A",
+      "category": "navigation",
+      "screenshots": [
+        "https://raw.githubusercontent.com/NotDiscordOfficial/kite-maps/main/docs/screenshots/browse.jpg",
+        "https://raw.githubusercontent.com/NotDiscordOfficial/kite-maps/main/docs/screenshots/place.jpg",
+        "https://raw.githubusercontent.com/NotDiscordOfficial/kite-maps/main/docs/screenshots/directions.jpg",
+        "https://raw.githubusercontent.com/NotDiscordOfficial/kite-maps/main/docs/screenshots/nav.jpg",
+        "https://raw.githubusercontent.com/NotDiscordOfficial/kite-maps/main/docs/screenshots/camalert.jpg",
+        "https://raw.githubusercontent.com/NotDiscordOfficial/kite-maps/main/docs/screenshots/transit.jpg"
+      ],
+      "versions": [
+        {
+          "version": "0.7.5",
+          "buildVersion": "5",
+          "date": "2026-10-30T03:28:44Z",
+          "localizedDescription": "Build 5. See what's new on GitHub: https://github.com/NotDiscordOfficial/kite-maps/releases/tag/v0.7.5-beta",
+          "downloadURL": "https://github.com/NotDiscordOfficial/kite-maps/releases/download/v0.7.5-beta/Kite.ipa",
+          "size": 6459047,
+          "minOSVersion": "16.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {
+          "NSLocalNetworkUsageDescription": "Kite searches your local network for compatible displays when you use receiver diagnostics.",
+          "NSLocationAlwaysAndWhenInUseUsageDescription": "Kite keeps guiding you with the screen off during navigation.",
+          "NSLocationWhenInUseUsageDescription": "Kite shows where you are on the map, finds places near you and guides you turn by turn.",
+          "NSMicrophoneUsageDescription": "Kite listens when you tap the microphone to search by voice.",
+          "NSSpeechRecognitionUsageDescription": "Kite turns what you say into a search."
+        }
+      }
+    }
+  ],
+  "news": []
+}
