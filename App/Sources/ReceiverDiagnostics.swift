@@ -112,13 +112,18 @@ final class ReceiverDiagnostics: ObservableObject {
                 do {
                     if let response = try ReceiverProbe.parse(self.bytes) {
                         let detail = response.status == 455 ? " The receiver rejected this request in its current state; this probe has not established a session." : " A reply does not establish CarPlay compatibility or a session."
+                        let displays = response.status == 200 ? ReceiverCapabilities.displays(from: response.body) : nil
+                        let displaySummary = displays?.map { display in
+                            "\(display.width)×\(display.height)" + (display.maxFPS.map { " at up to \($0) fps" } ?? "")
+                        }.joined(separator: ", ") ?? ""
+                        if !displaySummary.isEmpty { self.record("Advertised display: \(displaySummary)") }
                         if let methods = response.headers["public"] {
                             if methods.range(of: "^[A-Za-z0-9 ,_-]{1,200}$", options: .regularExpression) != nil {
                                 self.record("Public methods: \(methods)")
                             } else { self.record("Public methods: invalid or omitted") }
                         }
                         self.record("Response CSeq: \(response.headers["cseq"].flatMap(Int.init).map(String.init) ?? "missing or invalid"), body bytes: \(response.body.count)")
-                        self.finish("RTSP \(response.status), \(response.body.count) body bytes." + detail, token: token)
+                        self.finish("RTSP \(response.status), \(response.body.count) body bytes." + (displaySummary.isEmpty ? "" : " Display: \(displaySummary).") + detail, token: token)
                     } else if complete || error != nil {
                         self.finish("Connection closed before a complete RTSP reply.", token: token)
                     } else { self.receive(conn, token: token) }
