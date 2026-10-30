@@ -167,11 +167,23 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      - name: Check Duo simulator availability
+        id: duo_available
+        run: |
+          if xcrun simctl list devicetypes | grep -q 'com.apple.CoreSimulator.SimDeviceType.iPhone-Duo' && xcrun simctl list runtimes available | grep -q 'com.apple.CoreSimulator.SimRuntime.iOS-27-1'; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            echo '::notice::Duo screenshots skipped: the required simulator or iOS runtime is unavailable.'
+          fi
       - name: Install XcodeGen
+        if: steps.duo_available.outputs.available == 'true'
         run: brew install xcodegen
       - name: Make the Xcode project
+        if: steps.duo_available.outputs.available == 'true'
         run: xcodegen generate
       - name: Build for the simulator
+        if: steps.duo_available.outputs.available == 'true'
         run: |
           set -o pipefail
           xcodebuild -project Kite.xcodeproj -scheme Kite -configuration Debug \
@@ -180,6 +192,7 @@ jobs:
             || { grep -E "error:" build.log | sort -u | head -40; tail -n 20 build.log; exit 1; }
           tail -n 3 build.log
       - name: Take screenshots, closed and open
+        if: steps.duo_available.outputs.available == 'true'
         # The simulated Duo starts closed (the outer screen, display "primary"); DeviceHub opens it
         # (the inner screen, "primary-1"), then turns it upright.
         run: |
@@ -206,7 +219,7 @@ jobs:
           shoot upright primary-1 browse place nav
           ls shots
       - name: Save screenshots to the duo-screenshots branch
-        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        if: steps.duo_available.outputs.available == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
         continue-on-error: true
         run: |
           cd shots
